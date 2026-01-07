@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: networking-toolbox
+  labels:
+    app: networking-toolbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: networking-toolbox
+  template:
+    metadata:
+      labels:
+        app: networking-toolbox
+    spec:
+      containers:
+      - name: networking-toolbox
+        image: lissy93/networking-toolbox:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: networking-toolbox-service
+spec:
+  selector:
+    app: networking-toolbox
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30120  # Will be accessible on port 30120
+    protocol: TCP
+  type: NodePort

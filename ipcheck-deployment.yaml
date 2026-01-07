@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipcheck
+  labels:
+    app: ipcheck
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipcheck
+  template:
+    metadata:
+      labels:
+        app: ipcheck
+    spec:
+      containers:
+        - name: ipcheck
+          image: jason5ng32/myip:latest
+          ports:
+            - containerPort: 18966
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipcheck
+spec:
+  selector:
+    app: ipcheck
+  ports:
+    - port: 18966
+      targetPort: 18966
+      nodePort: 30070 # Will be accessible on port 30070
+      protocol: TCP
+  type: NodePort

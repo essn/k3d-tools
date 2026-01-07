@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyberchef
+  labels:
+    app: cyberchef
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cyberchef
+  template:
+    metadata:
+      labels:
+        app: cyberchef
+    spec:
+      containers:
+      - name: cyberchef
+        image: ghcr.io/gchq/cyberchef:latest
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cyberchef
+spec:
+  selector:
+    app: cyberchef
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30090  # Will be accessible on port 30090
+    protocol: TCP
+  type: NodePort
