@@ -8,6 +8,17 @@ Personal collection of development and security tools running locally in k3d.
 - [k3d](https://k3d.io/#installation)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 
+### MacOS with OrbStack
+
+[OrbStack](https://orbstack.dev/) can be used instead of Docker Desktop. If you enable OrbStack's built-in Kubernetes and your active kubectl context is `orbstack`, the bootstrap script will automatically skip k3d cluster creation — k3d is not required in this case.
+
+To use OrbStack's Kubernetes:
+1. In OrbStack, go to **Settings → Kubernetes** and enable it
+2. Ensure `orbstack` is your active kubectl context: `kubectl config use-context orbstack`
+3. Run the bootstrap script as normal
+
+NodePort services will be accessible at `http://localhost:<port>` via OrbStack's networking.
+
 ## Quick Start
 
 ```bash
