@@ -2,6 +2,15 @@
 
 set -e
 
+# Detect if OrbStack's built-in Kubernetes is the active context
+USING_ORBSTACK_K8S=false
+if command -v orb &> /dev/null; then
+  CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+  if [[ "$CURRENT_CONTEXT" == "orbstack" ]]; then
+    USING_ORBSTACK_K8S=true
+  fi
+fi
+
 # Check required dependencies
 MISSING_DEPS=()
 
@@ -9,7 +18,7 @@ if ! command -v docker &> /dev/null; then
   MISSING_DEPS+=("docker")
 fi
 
-if ! command -v k3d &> /dev/null; then
+if [[ "$USING_ORBSTACK_K8S" == "false" ]] && ! command -v k3d &> /dev/null; then
   MISSING_DEPS+=("k3d")
 fi
 
@@ -30,29 +39,34 @@ fi
 # Define required port mappings
 REQUIRED_PORTS=(30070 30080 30090 30100 30110 30120)
 
-# Check if cluster already exists
-if k3d cluster list | grep -q "^local "; then
-  echo "Cluster 'local' already exists, checking port mappings..."
-
-  # Get current port mappings from the load balancer
-  CURRENT_PORTS=$(docker port k3d-local-serverlb | grep -o '[0-9]\{5\}' | sort -u || true)
-
-  # Check for missing ports and add them
-  for port in "${REQUIRED_PORTS[@]}"; do
-    if ! echo "$CURRENT_PORTS" | grep -q "^${port}$"; then
-      echo "Adding missing port mapping: $port"
-      k3d cluster edit local --port-add "${port}:${port}@server:0"
-    fi
-  done
+if [[ "$USING_ORBSTACK_K8S" == "true" ]]; then
+  echo "OrbStack Kubernetes detected (context: orbstack), skipping k3d cluster setup..."
+  echo "NodePort services will be accessible via localhost through OrbStack's networking."
 else
-  echo "Creating new cluster with port mappings..."
-  k3d cluster create local \
-    -p "30070:30070@server:0" \
-    -p "30080:30080@server:0" \
-    -p "30090:30090@server:0" \
-    -p "30100:30100@server:0" \
-    -p "30110:30110@server:0" \
-    -p "30120:30120@server:0"
+  # Check if cluster already exists
+  if k3d cluster list | grep -q "^local "; then
+    echo "Cluster 'local' already exists, checking port mappings..."
+
+    # Get current port mappings from the load balancer
+    CURRENT_PORTS=$(docker port k3d-local-serverlb | grep -o '[0-9]\{5\}' | sort -u || true)
+
+    # Check for missing ports and add them
+    for port in "${REQUIRED_PORTS[@]}"; do
+      if ! echo "$CURRENT_PORTS" | grep -q "^${port}$"; then
+        echo "Adding missing port mapping: $port"
+        k3d cluster edit local --port-add "${port}:${port}@server:0"
+      fi
+    done
+  else
+    echo "Creating new cluster with port mappings..."
+    k3d cluster create local \
+      -p "30070:30070@server:0" \
+      -p "30080:30080@server:0" \
+      -p "30090:30090@server:0" \
+      -p "30100:30100@server:0" \
+      -p "30110:30110@server:0" \
+      -p "30120:30120@server:0"
+  fi
 fi
 
 # Apply kubernetes manifests (kubectl apply is idempotent)
